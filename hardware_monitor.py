@@ -21,27 +21,43 @@ def calculate_average_usage(window_data):
 
 # Function to send notification using nfty
 def send_notification(avg_cpu, avg_ram, avg_network, avg_disk):
-    message = f"Average Usage:\nCPU: {avg_cpu:.2f}%\nRAM: {avg_ram:.2f}%\nNetwork: {avg_network:.2f} MB\nDISK: {avg_disk:.2f}MB"
+    message = f"Average Usage:\tCPU: {avg_cpu:.2f}%\tRAM: {avg_ram:.2f}%\tNetwork: {avg_network:.2f} KB\tDISK: {avg_disk:.2f}KB"
     # POSTing the message via curl commnad
-    subprocess.run(["curl", "-d", message, NTFY_TOPIC_URL])
+    subprocess.run(["curl", "-H", "ta:computer", "-d", message, NTFY_TOPIC_URL])
+
+# Function to calculate last interval of network usage and update last usage
+def calculate_delta_network_traffic(current_total_network_traffic):
+    new_network_traffic = psutil.net_io_counters().bytes_sent + psutil.net_io_counters().bytes_recv
+    delta_traffic = new_network_traffic - current_total_network_traffic
+    current_total_network_traffic = new_network_traffic
+    return delta_traffic, new_network_traffic
+
+# Function to calculate last interval of disk usage and update last usage
+def calculate_delta_disk_usage(current_total_disk_usage):
+    new_total_byte_read_and_write = psutil.disk_io_counters().read_bytes + psutil.disk_io_counters().write_bytes
+    delta_disk_usage = new_total_byte_read_and_write - current_total_disk_usage
+    current_total_disk_usage = new_total_byte_read_and_write
+    return delta_disk_usage, new_total_byte_read_and_write
 
 # Main function for monitoring and notification
 def monitor_hardware(window_size, window_interval):
     window_data = {'cpu': [], 'ram': [], 'network': [], 'disk': []}
+    current_total_disk_usage = psutil.disk_io_counters().read_bytes + psutil.disk_io_counters().write_bytes
+    current_total_network_traffic = psutil.net_io_counters().bytes_sent + psutil.net_io_counters().bytes_recv
     
     try:
         while True:
             # Collect hardware usage data
             cpu_percent = psutil.cpu_percent()
             ram_percent = psutil.virtual_memory().percent
-            network_traffic = psutil.net_io_counters().bytes_sent + psutil.net_io_counters().bytes_recv
-            total_byte_read_and_write = psutil.disk_io_counters().read_bytes + psutil.disk_io_counters().write_bytes
+            delta_disk_usage, current_total_disk_usage = calculate_delta_disk_usage(current_total_disk_usage)
+            delta_network_usage, current_total_network_traffic = calculate_delta_network_traffic(current_total_network_traffic)
 
             # Append data to the current window
             window_data['cpu'].append(cpu_percent)
             window_data['ram'].append(ram_percent)
-            window_data['network'].append(network_traffic / (1024 * 1024))  # Convert to MB
-            window_data['disk'].append(total_byte_read_and_write / (1024 * 1024)) # Convert to MB
+            window_data['network'].append(delta_network_usage / 1024)  # Convert to KB
+            window_data['disk'].append(delta_disk_usage / 1024) # Convert to KB
 
             # Check if the window has reached its duration
             if len(window_data['cpu']) == window_size:
@@ -57,7 +73,7 @@ def monitor_hardware(window_size, window_interval):
             time.sleep(window_interval)
     
     except KeyboardInterrupt:
-        subprocess.run(["curl", "-d", "Monitoring stopped by admin.", NTFY_TOPIC_URL])
+        subprocess.run(["curl", "-H", "ta:rotating_light", "-d", "Monitoring stopped by admin.", NTFY_TOPIC_URL])
         print("Monitoring stopped by admin.")
 
 if __name__ == "__main__":
