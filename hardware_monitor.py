@@ -21,7 +21,7 @@ def calculate_average_usage(window_data):
 
 # Function to send notification using nfty
 def send_notification(avg_cpu, avg_ram, avg_network, avg_disk):
-    message = f"Average Usage:\tCPU: {avg_cpu:.2f}%\tRAM: {avg_ram:.2f}%\tNetwork: {avg_network:.2f} KB\tDISK: {avg_disk:.2f}KB"
+    message = f"Average Usage:\tCPU: {avg_cpu:.2f}%\tRAM: {avg_ram:.2f}%\tNetwork: {avg_network:.2f}KB\tDISK: {avg_disk:.2f}KB"
     # POSTing the message via curl commnad
     subprocess.run(["curl", "-H", "ta:computer", "-d", message, NTFY_TOPIC_URL])
 
