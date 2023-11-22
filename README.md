@@ -35,6 +35,10 @@ This Python script provides a hardware monitoring solution that calculates the a
 
 2. The hardware monitoring script will run continuously, collecting data and sending notifications at the end of each specified window.
 
+## Test
+Run and tested on Ubuntu as server and iOS as a client
+![ios test](test-ios.jpg "Testing on iOS")
+
 ## Stopping the Monitoring
 
 - To stop the monitoring script, use "Ctrl + C" in the terminal where the script is running.
